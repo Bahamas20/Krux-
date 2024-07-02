@@ -56,7 +56,7 @@ def analyze_image_with_openai(base64_image):
 # Function to perform OCR on a page and return the TextPage object
 def ocr_page(page):
     # Extract images from the page
-    if (page.get_images()):
+    if (len(page.get_images()) > 2):
         pix = page.get_pixmap()
         image_bytes = pix.tobytes()
         image_base64 = convert_image_to_base64(image_bytes)
