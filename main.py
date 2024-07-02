@@ -4,6 +4,8 @@ import csv
 from openai import OpenAI
 import re
 from datetime import datetime
+import base64
+import requests
 
 # Get today's date
 today = datetime.today()
@@ -12,13 +14,54 @@ today = datetime.today()
 formatted_date = today.strftime("%d-%B-%y")
 
 # Initialize OpenAI client with API key
+api_key=os.environ.get("OPENAI_API_KEY")
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+def convert_image_to_base64(image_bytes):
+    return base64.b64encode(image_bytes).decode('utf-8')
+
+def analyze_image_with_openai(base64_image):
+    # This is a placeholder for the actual OpenAI API call.
+    # Replace with the correct OpenAI API call for image analysis.
+    headers = {
+    "Content-Type": "application/json",
+    "Authorization": f"Bearer {api_key}"
+    }
+    payload = {
+    "model": "gpt-4o",
+    "messages": [
+        {
+        "role": "user",
+        "content": [
+            {
+            "type": "text",
+            "text": "What are the important details in this image write in one paragraph"
+            },
+            {
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/jpeg;base64,{base64_image}"
+            }
+            }
+        ]
+        }
+    ],
+    "max_tokens": 300
+    }
+
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+
+    return (response.json()['choices'][0]['message']['content'])
 
 # Function to perform OCR on a page and return the TextPage object
 def ocr_page(page):
-    # Perform OCR and return TextPage object
-    text_page = page.get_textpage_ocr()
-    return text_page
+    # Extract images from the page
+    if (page.get_images()):
+        pix = page.get_pixmap()
+        image_bytes = pix.tobytes()
+        image_base64 = convert_image_to_base64(image_bytes)
+        image_analysis = analyze_image_with_openai(image_base64)
+        return image_analysis
 
 # Function to extract all text from the PDF using OCR and return as a string
 def extract_all_text(pdf_path):
@@ -29,12 +72,9 @@ def extract_all_text(pdf_path):
         page = doc.load_page(page_num)
         text_page = ocr_page(page)
 
-        # Extract text from TextPage object
-        page_text = text_page.extractText()
-        
         # Append page text to full text
         full_text += f"\n\n--- Text from Page {page_num + 1} ---\n\n"
-        full_text += page_text
+        full_text += text_page
 
     return full_text
 
@@ -52,7 +92,7 @@ def extract_info_with_openai(text):
     8. Company Stage (Pre-Seed,Seed,Series A,Series B,Series C one of this options only)
     9. Sector 
     10. Business Model (no description just one main model used)
-    11. Revenue (in USD raised by the company dont bold your response)
+    11. Revenue (in USD raised by the company dont bold your response or give the expected sales, whatever information about profits)
     12. AS notes (any extra notes or remarks about the company that you know or found that is useful information for venture capitalist)
 
     Text:
@@ -71,7 +111,6 @@ def extract_info_with_openai(text):
     
     # Extract information from completion
     response_text = completion.choices[0].message.content # Get the message from the completion
-    print(response_text)
        # Use regex to extract each field
     company_name_match = re.search(r"(?i)company\s*name.*?:\s*(.+)", response_text)
     website_match = re.search(r"(?i)website.*?:\s*(.+)", response_text)
@@ -160,12 +199,12 @@ def main(directory_path):
                 info_list.append(extracted_info)
 
         # Save extracted information to CSV file
-        csv_file_path = os.path.join(directory_path, 'combined_info.csv')
+        csv_file_path = os.path.join(".", 'combined_info.csv')
         save_info_to_csv(info_list, csv_file_path)
         
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    directory_path = './companies'
+    directory_path = '.'
     main(directory_path)

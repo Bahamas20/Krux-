@@ -1,1 +1,1 @@
-    print(response_text)
+print
