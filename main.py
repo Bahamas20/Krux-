@@ -61,7 +61,9 @@ def ocr_page(page):
         image_bytes = pix.tobytes()
         image_base64 = convert_image_to_base64(image_bytes)
         image_analysis = analyze_image_with_openai(image_base64)
-        return image_analysis
+    else:
+        image_analysis = ""
+    return image_analysis
 
 # Function to extract all text from the PDF using OCR and return as a string
 def extract_all_text(pdf_path):
