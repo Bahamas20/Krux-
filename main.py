@@ -129,7 +129,7 @@ def extract_info_with_openai(text):
 
 
 # Function to save extracted information to a CSV file
-def save_info_to_csv(info_dict, csv_file):
+def save_info_to_csv(info_list, csv_file):
     fieldnames = [
         "Company", "Website", "IC", "Pipeline stage", "Description","dataroom","deal team", "Name", 
         "Role", "Email", "Deal source", "Last Updated", "Company Stage", "Vertical / Sector", 
@@ -139,27 +139,33 @@ def save_info_to_csv(info_dict, csv_file):
     with open(csv_file, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        writer.writerow(info_dict)
+        for info_dict in info_list:
+            writer.writerow(info_dict)
 
 # Main function
-def main(pdf_path):
+def main(directory_path):
     try:
-        # Extract text from PDF
-        full_text = extract_all_text(pdf_path)
+        info_list = []
+        for filename in os.listdir(directory_path):
+            if filename.endswith('.pdf'):
+                pdf_path = os.path.join(directory_path, filename)
+                # Extract text from PDF
+                full_text = extract_all_text(pdf_path)
         
-        # Extract information using OpenAI
-        extracted_info = extract_info_with_openai(full_text)
-        print("Extracted Information:")
-        print(extracted_info)
-        
+                # Extract information using OpenAI
+                extracted_info = extract_info_with_openai(full_text)
+                print("Extracted Information:")
+                print(extracted_info)
+                
+                info_list.append(extracted_info)
+
         # Save extracted information to CSV file
-        csv_file_path = pdf_path.replace('.pdf', '.csv')
-        save_info_to_csv(extracted_info, csv_file_path)
-        print(f"Extracted information saved to {csv_file_path}")
+        csv_file_path = os.path.join(directory_path, 'combined_info.csv')
+        save_info_to_csv(info_list, csv_file_path)
         
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    pdf_path = "corgi.pdf"  # Replace with your input PDF path
-    main(pdf_path)
+    directory_path = './companies'
+    main(directory_path)
