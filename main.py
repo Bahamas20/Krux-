@@ -44,7 +44,7 @@ def extract_info_with_openai(text):
     Extract the following information from the text below (if any of the information is not available in text or your knowledge then leave it NULL):
     1. Company Name
     2. Website
-    3. Region of Company Location (Just list the main location (COUNTRY) no description needed)
+    3. Country of Company Location (Just list the main Country no description needed, if not stated use your knowledge)
     4. Description (write 2-3 sentences at least)
     5. Name of Main Company Contact
     6. Role of Main Company Contact (CEO,Founder etc)
@@ -65,7 +65,8 @@ def extract_info_with_openai(text):
         messages=[
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
-        ]
+        ],
+        temperature=0.1
     )
     
     # Extract information from completion
@@ -74,7 +75,7 @@ def extract_info_with_openai(text):
        # Use regex to extract each field
     company_name_match = re.search(r"(?i)company\s*name.*?:\s*(.+)", response_text)
     website_match = re.search(r"(?i)website.*?:\s*(.+)", response_text)
-    region_match = re.search(r"(?i)region\s*of\s*company\s*location.*?:\s*(.+)", response_text)
+    region_match = re.search(r"(?i)country\s*of\s*company\s*location.*?:\s*(.+)", response_text)
     description_match = re.search(r"(?i)description.*?:\s*(.+)", response_text)
     contact_name_match = re.search(r"(?i)name\s*of\s*main\s*company\s*contact.*?:\s*(.+)", response_text)
     contact_role_match = re.search(r"(?i)role\s*of\s*main\s*company\s*contact.*?:\s*(.+)", response_text)
