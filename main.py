@@ -34,18 +34,18 @@ def extract_all_text(pdf_path):
 # Function to extract information from text using OpenAI's GPT-4 model
 def extract_info_with_openai(text):
     prompt = f"""
-    Extract the following information from the text below:
+    Extract the following information from the text below (if any of the information is not available in text or your knowledge then leave it NULL):
     1. Company Name
     2. Website
-    3. Region of Company Location
+    3. Region of Company Location (Just list the main location (COUNTRY) no description needed)
     4. Description
     5. Name of Main Company Contact
     6. Role of Main Company Contact (CEO,Founder etc)
     7. Email of Main Company Contact
     8. Company Stage (Pre-Seed,Seed,Series A,Series B,Series C one of this options only)
     9. Sector 
-    10. Business Model (no description just the model used)
-    11. Revenue (in USD raised by the company)
+    10. Business Model (no description just one main model used)
+    11. Revenue (in USD raised by the company dont bold your response)
 
     Text:
     {text}
@@ -61,115 +61,36 @@ def extract_info_with_openai(text):
     )
     
     # Extract information from completion
-    response_text = completion.choices[0].message.strip()  # Get the message from the completion
+    response_text = completion.choices[0].message.content # Get the message from the completion
     print(response_text)
-        
-        # Use regex to extract each field
-    company_name_match = re.search(r"1\. Company Name: (.+)", response_text)
-    if company_name_match:
-        company_name = company_name_match.group(1).strip()
-    else:
-        company_name = ""
-
-    website_match = re.search(r"2\. Website: (.+)", response_text)
-    if website_match:
-        website = website_match.group(1).strip()
-    else:
-        website = ""
-
-    region_match = re.search(r"3\. Region of Company Location: (.+)", response_text)
-    if region_match:
-        region = region_match.group(1).strip()
-    else:
-        region = ""
-
-    description_match = re.search(r"4\. Description: (.+)", response_text)
-    if description_match:
-        description = description_match.group(1).strip()
-    else:
-        description = ""
-
-    contact_name_match = re.search(r"5\. Name of Main Company Contact: (.+)", response_text)
-    if contact_name_match:
-        contact_name = contact_name_match.group(1).strip()
-    else:
-        contact_name = ""
-
-    contact_role_match = re.search(r"6\. Role of Main Company Contact: (.+)", response_text)
-    if contact_role_match:
-        contact_role = contact_role_match.group(1).strip()
-    else:
-        contact_role = ""
-
-    contact_email_match = re.search(r"7\. Email of Main Company Contact: (.+)", response_text)
-    if contact_email_match:
-        contact_email = contact_email_match.group(1).strip()
-    else:
-        contact_email = ""
-
-    company_stage_match = re.search(r"8\. Company Stage: (.+)", response_text)
-    if company_stage_match:
-        company_stage = company_stage_match.group(1).strip()
-    else:
-        company_stage = ""
-
-    sector_match = re.search(r"9\. Sector: (.+)", response_text)
-    if sector_match:
-        sector = sector_match.group(1).strip()
-    else:
-        sector = ""
-
-    business_model_match = re.search(r"10\. Business Model: (.+)", response_text)
-    if business_model_match:
-        business_model = business_model_match.group(1).strip()
-    else:
-        business_model = ""
-
-    revenue_match = re.search(r"11\. Revenue: (.+)", response_text)
-    if revenue_match:
-        revenue = revenue_match.group(1).strip()
-    else:
-        revenue = ""
-
+       # Use regex to extract each field
+    company_name_match = re.search(r"(?i)company\s*name.*?:\s*(.+)", response_text)
+    website_match = re.search(r"(?i)website.*?:\s*(.+)", response_text)
+    region_match = re.search(r"(?i)region\s*of\s*company\s*location.*?:\s*(.+)", response_text)
+    description_match = re.search(r"(?i)description.*?:\s*(.+)", response_text)
+    contact_name_match = re.search(r"(?i)name\s*of\s*main\s*company\s*contact.*?:\s*(.+)", response_text)
+    contact_role_match = re.search(r"(?i)role\s*of\s*main\s*company\s*contact.*?:\s*(.+)", response_text)
+    contact_email_match = re.search(r"(?i)email\s*of\s*main\s*company\s*contact.*?:\s*(.+)", response_text)
+    company_stage_match = re.search(r"(?i)company\s*stage.*?:\s*(.+)", response_text)
+    sector_match = re.search(r"(?i)sector.*?:\s*(.+)", response_text)
+    business_model_match = re.search(r"(?i)business\s*model.*?:\s*(.+)", response_text)
+    revenue_match = re.search(r"(?i)revenue.*?:\s*(.+)", response_text)
     
+
     # Initialize variables to store extracted information
-    company_name = ""
-    website = ""
-    region = ""
-    description = ""
-    contact_name = ""
-    contact_role = ""
-    contact_email = ""
-    company_stage = ""
-    sector = ""
-    business_model = ""
-    revenue = ""
+    company_name = company_name_match.group(1).strip() if company_name_match and not company_name_match.group(1).strip().lower() == "null" else ""
+    website = website_match.group(1).strip() if website_match and not website_match.group(1).strip().lower() == "null" else ""
+    region = region_match.group(1).strip() if region_match and not region_match.group(1).strip().lower() == "null" else ""
+    description = description_match.group(1).strip() if description_match and not description_match.group(1).strip().lower() == "null" else ""
+    contact_name = contact_name_match.group(1).strip() if contact_name_match and not contact_name_match.group(1).strip().lower() == "null" else ""
+    contact_role = contact_role_match.group(1).strip() if contact_role_match and not contact_role_match.group(1).strip().lower() == "null" else ""
+    contact_email = contact_email_match.group(1).strip() if contact_email_match and not contact_email_match.group(1).strip().lower() == "null" else ""
+    company_stage = company_stage_match.group(1).strip() if company_stage_match and not company_stage_match.group(1).strip().lower() == "null" else ""
+    sector = sector_match.group(1).strip() if sector_match and not sector_match.group(1).strip().lower() == "null" else ""
+    business_model = business_model_match.group(1).strip() if business_model_match and not business_model_match.group(1).strip().lower() == "null" else ""
+    revenue = revenue_match.group(1).strip() if revenue_match and not revenue_match.group(1).strip().lower() == "null" else ""
 
-    # Process each line to extract relevant information
-    for line in info_lines:
-        if line.startswith("1. Company Name"):
-            company_name = line.split(":")[1].strip()
-        elif line.startswith("2. Website"):
-            website = line.split(":")[1].strip()
-        elif line.startswith("3. Region of Company Location"):
-            region = line.split(":")[1].strip()
-        elif line.startswith("4. Description"):
-            description = line.split(":")[1].strip()
-        elif line.startswith("5. Name of Main Company Contact"):
-            contact_name = line.split(":")[1].strip()
-        elif line.startswith("6. Role of Main Company Contact"):
-            contact_role = line.split(":")[1].strip()
-        elif line.startswith("7. Email of Main Company Contact"):
-            contact_email = line.split(":")[1].strip()
-        elif line.startswith("8. Company Stage"):
-            company_stage = line.split(":")[1].strip()
-        elif line.startswith("9. Sector"):
-            sector = line.split(":")[1].strip()
-        elif line.startswith("10. Business Model"):
-            business_model = line.split(":")[1].strip()
-        elif line.startswith("11. Revenue"):
-            revenue = line.split(":")[1].strip()
-    
+
     # Return extracted information as dictionary
     return {
         "Company": company_name,
@@ -219,5 +140,5 @@ def main(pdf_path):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    pdf_path = "corgi.pdf"  # Replace with your input PDF path
+    pdf_path = "insync.pdf"  # Replace with your input PDF path
     main(pdf_path)
