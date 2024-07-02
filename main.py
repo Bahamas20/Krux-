@@ -3,6 +3,13 @@ import os
 import csv
 from openai import OpenAI
 import re
+from datetime import datetime
+
+# Get today's date
+today = datetime.today()
+
+# Format date as DD-Month-YY
+formatted_date = today.strftime("%d-%B-%y")
 
 # Initialize OpenAI client with API key
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -38,7 +45,7 @@ def extract_info_with_openai(text):
     1. Company Name
     2. Website
     3. Region of Company Location (Just list the main location (COUNTRY) no description needed)
-    4. Description
+    4. Description (write 2-3 sentences at least)
     5. Name of Main Company Contact
     6. Role of Main Company Contact (CEO,Founder etc)
     7. Email of Main Company Contact
@@ -46,6 +53,7 @@ def extract_info_with_openai(text):
     9. Sector 
     10. Business Model (no description just one main model used)
     11. Revenue (in USD raised by the company dont bold your response)
+    12. AS notes (any extra notes or remarks about the company that you know or found that is useful information for venture capitalist)
 
     Text:
     {text}
@@ -75,6 +83,8 @@ def extract_info_with_openai(text):
     sector_match = re.search(r"(?i)sector.*?:\s*(.+)", response_text)
     business_model_match = re.search(r"(?i)business\s*model.*?:\s*(.+)", response_text)
     revenue_match = re.search(r"(?i)revenue.*?:\s*(.+)", response_text)
+    notes_match = re.search(r"(?i)notes.*?:\s*(.+)", response_text)
+
     
 
     # Initialize variables to store extracted information
@@ -89,6 +99,9 @@ def extract_info_with_openai(text):
     sector = sector_match.group(1).strip() if sector_match and not sector_match.group(1).strip().lower() == "null" else ""
     business_model = business_model_match.group(1).strip() if business_model_match and not business_model_match.group(1).strip().lower() == "null" else ""
     revenue = revenue_match.group(1).strip() if revenue_match and not revenue_match.group(1).strip().lower() == "null" else ""
+    notes = notes_match.group(1).strip() if notes_match and not notes_match.group(1).strip().lower() == "null" else ""
+
+
 
 
     # Return extracted information as dictionary
@@ -96,23 +109,30 @@ def extract_info_with_openai(text):
         "Company": company_name,
         "Website": website,
         "IC": region,
+        "Pipeline stage":"",
         "Description": description,
+        "dataroom":"",
+        "deal team":"",
         "Name": contact_name,
         "Role": contact_role,
         "Email": contact_email,
-        "Stage": company_stage,
-        "Sector": sector,
+        "Deal source": "", 
+        "Last Updated": formatted_date,
+        "Company Stage": company_stage,
+        "Vertical / Sector": sector,
         "Business Model": business_model,
-        "Revenue (USD)": revenue
+        "Technology": "",
+        "Revenue (USD)": revenue,
+        "AS Notes": notes
     }
 
 
 # Function to save extracted information to a CSV file
 def save_info_to_csv(info_dict, csv_file):
     fieldnames = [
-        "Company", "Website", "IC", "Description", "Name", 
-        "Role", "Email", "Stage", "Sector", 
-        "Business Model", "Revenue (USD)"
+        "Company", "Website", "IC", "Pipeline stage", "Description","dataroom","deal team", "Name", 
+        "Role", "Email", "Deal source", "Last Updated", "Company Stage", "Vertical / Sector", 
+        "Business Model", "Technology","Revenue (USD)","AS Notes"
     ]
     
     with open(csv_file, 'w', newline='') as csvfile:
@@ -140,5 +160,5 @@ def main(pdf_path):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    pdf_path = "insync.pdf"  # Replace with your input PDF path
+    pdf_path = "corgi.pdf"  # Replace with your input PDF path
     main(pdf_path)
