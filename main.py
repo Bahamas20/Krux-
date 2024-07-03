@@ -201,7 +201,7 @@ def main(directory_path):
                 info_list.append(extracted_info)
 
         # Save extracted information to CSV file
-        csv_file_path = os.path.join(".", 'combined_info.csv')
+        csv_file_path = os.path.join(".", 'krux_vc.csv')
         save_info_to_csv(info_list, csv_file_path)
         
     except Exception as e:
