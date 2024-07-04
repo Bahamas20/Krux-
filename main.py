@@ -1,4 +1,4 @@
-import fitz  # PyMuPDF
+import fitz
 import os
 import csv
 from openai import OpenAI
@@ -6,11 +6,13 @@ import re
 from datetime import datetime
 import base64
 import requests
+from PIL import Image
+import io
+import pytesseract
 
-# Get today's date
+
 today = datetime.today()
 
-# Format date as DD-Month-YY
 formatted_date = today.strftime("%d-%B-%y")
 
 # Initialize OpenAI client with API key
@@ -21,8 +23,7 @@ def convert_image_to_base64(image_bytes):
     return base64.b64encode(image_bytes).decode('utf-8')
 
 def analyze_image_with_openai(base64_image):
-    # This is a placeholder for the actual OpenAI API call.
-    # Replace with the correct OpenAI API call for image analysis.
+
     headers = {
     "Content-Type": "application/json",
     "Authorization": f"Bearer {api_key}"
@@ -53,37 +54,42 @@ def analyze_image_with_openai(base64_image):
 
     return (response.json()['choices'][0]['message']['content'])
 
-# Function to perform OCR on a page and return the TextPage object
-def ocr_page(page):
-    # Extract images from the page
-    if (len(page.get_images()) > 2):
-        pix = page.get_pixmap()
-        image_bytes = pix.tobytes()
-        image_base64 = convert_image_to_base64(image_bytes)
-        image_analysis = analyze_image_with_openai(image_base64)
-    else:
-        image_analysis = ""
-    return image_analysis
+# Function to perform OCR on a page and return the TextPage object using OpenAI Vision
+# def ocr_page(page):
+#     # Extract images from the page
+#     pix = page.get_pixmap()
+#     image_bytes = pix.tobytes()
+#     image_base64 = convert_image_to_base64(image_bytes)
+#     image_analysis = analyze_image_with_openai(image_base64)
+#     return image_analysis
 
-# Function to extract all text from the PDF using OCR and return as a string
+# Function to extract all text from the PDF using OCR (pytesseract) and return as a string
+def ocr_page(page):
+
+    pix = page.get_pixmap()
+    img = Image.open(io.BytesIO(pix.tobytes()))
+    
+    ocr_text = pytesseract.image_to_string(img)
+    return ocr_text
+
 def extract_all_text(pdf_path):
     doc = fitz.open(pdf_path)
     full_text = ""
 
     for page_num in range(len(doc)):
         page = doc.load_page(page_num)
-        text_page = ocr_page(page)
-
-        # Append page text to full text
-        full_text += f"\n\n--- Text from Page {page_num + 1} ---\n\n"
-        full_text += text_page
+        
+        ocr_text = ocr_page(page)
+        
+        page_text = page.get_text("text")
+        
+        full_text += page_text + ocr_text
 
     return full_text
 
-# Function to extract information from text using OpenAI's GPT-4 model
 def extract_info_with_openai(text):
     prompt = f"""
-    Extract the following information from the text below (if any of the information is not available in text or your knowledge then leave it NULL):
+    Extract the following information from the text below (if any of the information is not available in text or your knowledge then leave it NULL with no reasoning):
     1. Company Name
     2. Website
     3. Country of Company Location (Just list the main Country no description needed, if not stated use your knowledge)
@@ -91,10 +97,10 @@ def extract_info_with_openai(text):
     5. Name of Main Company Contact
     6. Role of Main Company Contact (CEO,Founder etc)
     7. Email of Main Company Contact
-    8. Company Stage (Pre-Seed,Seed,Series A,Series B,Series C one of this options only)
+    8. Company Stage (Pre-Seed,Seed,Series A,Series B,Series C give one of this options ONLY)
     9. Sector 
     10. Business Model (no description just one main model used)
-    11. Revenue (in USD raised by the company dont bold your response or give the expected sales, whatever information about profits)
+    11. Revenue (in USD raised by the company not investments or give me the expected sales, whatever information about profits)
     12. AS notes (any extra notes or remarks about the company that you know or found that is useful information for venture capitalist)
 
     Text:
@@ -111,9 +117,8 @@ def extract_info_with_openai(text):
         temperature=0.1
     )
     
-    # Extract information from completion
-    response_text = completion.choices[0].message.content # Get the message from the completion
-       # Use regex to extract each field
+    response_text = completion.choices[0].message.content
+
     company_name_match = re.search(r"(?i)company\s*name.*?:\s*(.+)", response_text)
     website_match = re.search(r"(?i)website.*?:\s*(.+)", response_text)
     region_match = re.search(r"(?i)country\s*of\s*company\s*location.*?:\s*(.+)", response_text)
@@ -143,9 +148,6 @@ def extract_info_with_openai(text):
     revenue = revenue_match.group(1).strip() if revenue_match and not revenue_match.group(1).strip().lower() == "null" else ""
     notes = notes_match.group(1).strip() if notes_match and not notes_match.group(1).strip().lower() == "null" else ""
 
-
-
-
     # Return extracted information as dictionary
     return {
         "Company": company_name,
@@ -169,7 +171,6 @@ def extract_info_with_openai(text):
     }
 
 
-# Function to save extracted information to a CSV file
 def save_info_to_csv(info_list, csv_file):
     fieldnames = [
         "Company", "Website", "IC", "Pipeline stage", "Description","dataroom","deal team", "Name", 
@@ -190,17 +191,15 @@ def main(directory_path):
         for filename in os.listdir(directory_path):
             if filename.endswith('.pdf'):
                 pdf_path = os.path.join(directory_path, filename)
-                # Extract text from PDF
+                
                 full_text = extract_all_text(pdf_path)
-        
-                # Extract information using OpenAI
                 extracted_info = extract_info_with_openai(full_text)
+               
                 print("Extracted Information:")
                 print(extracted_info)
                 
                 info_list.append(extracted_info)
 
-        # Save extracted information to CSV file
         csv_file_path = os.path.join(".", 'krux_vc.csv')
         save_info_to_csv(info_list, csv_file_path)
         
@@ -208,5 +207,5 @@ def main(directory_path):
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    directory_path = '.'
+    directory_path = './companies'
     main(directory_path)
