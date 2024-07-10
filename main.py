@@ -19,40 +19,40 @@ formatted_date = today.strftime("%d-%B-%y")
 api_key=os.environ.get("OPENAI_API_KEY")
 client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
-def convert_image_to_base64(image_bytes):
-    return base64.b64encode(image_bytes).decode('utf-8')
+# def convert_image_to_base64(image_bytes):
+#     return base64.b64encode(image_bytes).decode('utf-8')
 
-def analyze_image_with_openai(base64_image):
+# def analyze_image_with_openai(base64_image):
 
-    headers = {
-    "Content-Type": "application/json",
-    "Authorization": f"Bearer {api_key}"
-    }
-    payload = {
-    "model": "gpt-4o",
-    "messages": [
-        {
-        "role": "user",
-        "content": [
-            {
-            "type": "text",
-            "text": "What are the important details in this image write in one paragraph"
-            },
-            {
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_image}"
-            }
-            }
-        ]
-        }
-    ],
-    "max_tokens": 300
-    }
+#     headers = {
+#     "Content-Type": "application/json",
+#     "Authorization": f"Bearer {api_key}"
+#     }
+#     payload = {
+#     "model": "gpt-4o",
+#     "messages": [
+#         {
+#         "role": "user",
+#         "content": [
+#             {
+#             "type": "text",
+#             "text": "What are the important details in this image write in one paragraph"
+#             },
+#             {
+#             "type": "image_url",
+#             "image_url": {
+#                 "url": f"data:image/jpeg;base64,{base64_image}"
+#             }
+#             }
+#         ]
+#         }
+#     ],
+#     "max_tokens": 300
+#     }
 
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+#     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
 
-    return (response.json()['choices'][0]['message']['content'])
+#     return (response.json()['choices'][0]['message']['content'])
 
 # Function to perform OCR on a page and return the TextPage object using OpenAI Vision
 # def ocr_page(page):
@@ -89,18 +89,18 @@ def extract_all_text(pdf_path):
 
 def extract_info_with_openai(text):
     prompt = f"""
-    Extract the following information from the text below (if any of the information is not available in text or your knowledge then leave it NULL with no reasoning):
+    Extract the following information from the text below (if any of the information is not available in text or your own knowledge then leave it NULL with no reasoning):
     1. Company Name
     2. Website
-    3. Country of Company Location (Just list the main Country no description needed, if not stated use your knowledge)
-    4. Description (write 2-3 sentences at least)
+    3. Country of Company Location (Just list the Main Country no description needed, if not stated use your knowledge)
+    4. Description (write 2 sentences at least)
     5. Name of Main Company Contact
     6. Role of Main Company Contact (CEO,Founder etc)
-    7. Email of Main Company Contact
+    7. Email of Main Company Contact (or any email contact to company)
     8. Company Stage (Pre-Seed,Seed,Series A,Series B,Series C give one of this options ONLY)
     9. Sector 
     10. Business Model (no description just one main model used)
-    11. Revenue (in USD raised by the company not investments or give me the expected sales, whatever information about profits)
+    11. Revenue (Provide the Annual Recurring Revenue (ARR) in the format ARR: .. If ARR is not available, deduce the closest metric and calculate ARR based on that metric (e.g., multiply MRR by 12, or any monthly revenu by 12).ONLYY If neither ARR nor a directly calculable metric is available, provide the closest metric: .. For example, if net profit is the closest metric, then Net Profit: .. . IF not always try to deduce ARR no matter what.( Use M for millions and K for thousands )
     12. AS notes (any extra notes or remarks about the company that you know or found that is useful information for venture capitalist)
 
     Text:
@@ -114,7 +114,7 @@ def extract_info_with_openai(text):
             {"role": "system", "content": "You are a helpful assistant."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.1
+        temperature=0.2
     )
     
     response_text = completion.choices[0].message.content
@@ -194,18 +194,23 @@ def main(directory_path):
                 
                 full_text = extract_all_text(pdf_path)
                 extracted_info = extract_info_with_openai(full_text)
-               
-                print("Extracted Information:")
-                print(extracted_info)
+                
+                # txt_filename = os.path.splitext(filename)[0] + '.txt'
+                # txt_path = os.path.join(directory_path, txt_filename)
+                
+                # with open(txt_path, 'w', encoding='utf-8') as txt_file:
+                #     txt_file.write(full_text)
+                
+                # print(f"Text saved to: {txt_path}")
                 
                 info_list.append(extracted_info)
 
-        csv_file_path = os.path.join(".", 'krux_vc.csv')
+        csv_file_path = os.path.join(".", 'records_of_arr.csv')
         save_info_to_csv(info_list, csv_file_path)
         
     except Exception as e:
         print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    directory_path = './companies'
+    directory_path = './small_sample'
     main(directory_path)
