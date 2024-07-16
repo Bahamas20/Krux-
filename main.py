@@ -1,3 +1,4 @@
+import tempfile
 import fitz
 import os
 import csv
@@ -9,6 +10,7 @@ import requests
 from PIL import Image
 import io
 import pytesseract
+from drive_upload import upload_basic
 
 
 today = datetime.today()
@@ -171,18 +173,32 @@ def extract_info_with_openai(text):
     }
 
 
-def save_info_to_csv(info_list, csv_file):
+def save_info_to_csv(info_list):
     fieldnames = [
         "Company", "Website", "IC", "Pipeline stage", "Description","dataroom","deal team", "Name", 
         "Role", "Email", "Deal source", "Last Updated", "Company Stage", "Vertical / Sector", 
         "Business Model", "Technology","Revenue (USD)","AS Notes"
     ]
     
-    with open(csv_file, 'w', newline='') as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
-        for info_dict in info_list:
-            writer.writerow(info_dict)
+    # Create a temporary file to store the CSV
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.csv') as temp_file:
+        csv_file_path = temp_file.name
+        
+        try:
+            # Write CSV data to the temporary file
+            with open(csv_file_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                for info_dict in info_list:
+                    writer.writerow(info_dict)
+            
+            # Return the path to the temporary CSV file
+            return csv_file_path
+        
+        except Exception as e:
+            # Handle any exceptions
+            print(f"Error saving CSV file: {e}")
+            return None
 
 # Main function
 def main(directory_path):
@@ -195,19 +211,24 @@ def main(directory_path):
                 full_text = extract_all_text(pdf_path)
                 extracted_info = extract_info_with_openai(full_text)
                 
-                # txt_filename = os.path.splitext(filename)[0] + '.txt'
-                # txt_path = os.path.join(directory_path, txt_filename)
-                
-                # with open(txt_path, 'w', encoding='utf-8') as txt_file:
-                #     txt_file.write(full_text)
-                
-                # print(f"Text saved to: {txt_path}")
-                
                 info_list.append(extracted_info)
 
-        csv_file_path = os.path.join(".", 'records_of_arr.csv')
-        save_info_to_csv(info_list, csv_file_path)
-        
+        csv_file_path = save_info_to_csv(info_list)
+        if csv_file_path:
+                print(f"Temporary CSV file created: {csv_file_path}")
+                
+                # Now, upload csv_file_path using your upload_basic function
+                upload_basic(csv_file_path)
+                
+                # After uploading, delete the temporary CSV file
+                try:
+                    os.remove(csv_file_path)
+                    print(f"Temporary CSV file deleted: {csv_file_path}")
+                except Exception as e:
+                    print(f"Error deleting temporary CSV file: {e}")
+        else:
+            print("Failed to create temporary CSV file.")
+   
     except Exception as e:
         print(f"An error occurred: {e}")
 
