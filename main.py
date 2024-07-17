@@ -199,6 +199,20 @@ def save_info_to_csv(info_list):
             # Handle any exceptions
             print(f"Error saving CSV file: {e}")
             return None
+    def save_info_to_csv_local(info_list,csv_file):
+        
+        fieldnames = [
+            "Company", "Website", "IC", "Pipeline stage", "Description","dataroom","deal team", "Name", 
+            "Role", "Email", "Deal source", "Last Updated", "Company Stage", "Vertical / Sector", 
+            "Business Model", "Technology","Revenue (USD)","AS Notes"
+        ]
+
+        with open(csv_file, 'w', newline='') as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            for info_dict in info_list:
+                writer.writerow(info_dict)
+        
 
 # Main function
 def main(directory_path):
@@ -213,21 +227,22 @@ def main(directory_path):
                 
                 info_list.append(extracted_info)
 
-        csv_file_path = save_info_to_csv(info_list)
-        if csv_file_path:
-                print(f"Temporary CSV file created: {csv_file_path}")
+        csv_file_path = os.path.join(".", 'records_of_arr.csv')
+        save_info_to_csv(info_list, csv_file_path)
+        # if csv_file_path:
+        #         print(f"Temporary CSV file created: {csv_file_path}")
                 
-                # Now, upload csv_file_path using your upload_basic function
-                upload_basic(csv_file_path)
+        #         # Now, upload csv_file_path using your upload_basic function
+        #         upload_basic(csv_file_path)
                 
-                # After uploading, delete the temporary CSV file
-                try:
-                    os.remove(csv_file_path)
-                    print(f"Temporary CSV file deleted: {csv_file_path}")
-                except Exception as e:
-                    print(f"Error deleting temporary CSV file: {e}")
-        else:
-            print("Failed to create temporary CSV file.")
+        #         # After uploading, delete the temporary CSV file
+        #         try:
+        #             # os.remove(csv_file_path)
+        #             print(f"Temporary CSV file deleted: {csv_file_path}")
+        #         except Exception as e:
+        #             print(f"Error deleting temporary CSV file: {e}")
+        # else:
+        #     print("Failed to create temporary CSV file.")
    
     except Exception as e:
         print(f"An error occurred: {e}")
